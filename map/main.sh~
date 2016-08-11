@@ -1,20 +1,34 @@
 #! /bin/bash
 
-INPUT_DIR="/home/maxime/Desktop/WordCountPipe/split/outbox"
-cd "/home/maxime/Desktop/WordCountPipe/map"
+#INPUT_DIR="/inbox/"$HOSTNAME
+#TMP_OUTPUT_DIR="/outbox/tmp/"$HOSTNAME
+#OUTPUT_DIR="/outbox/processed"
+
+
+INPUT_DIR="/home/maime/Desktop/WordCountPipe/map/"
+cd $INPUT_DIR
+
+#export $INPUT_DIR && $TMP_OUTPUT_DIR && $OUTPUT_DIR
+#mkdir -p $INPUT_DIR && $TMP_OUTPUT_DIR && $OUTPUT_DIR
+
 function block_for_change {
   inotifywait -r \
 	-e moved_to,create \
-	$INPUT_DIR
+	-t 60 \
+	--format %f \
+	$INPUT_DIR 
+	FILE=%f
+	echo $FILE
 }
+#BUILD_SCRIPT=main.py   
 
-BUILD_SCRIPT=main.py   
-
-function build {
-  bash python3 main.py -i $INPUT_DIR -o "/home/maxime/Desktop/WordCountPipe/map/outbox"
-}
+#function build {
+  #bash python3 main.py -i $INPUT_DIR -o $TMP_OUTPUT_DIR
+#}
 
 
-while block_for_change; do
-  build
+while block_for_change; do 
+	echo $FILE
 done
+
+#docker run -dit --name map -v /home/maxime/Desktop/WordCountPipe/split/outbox:/inbox -v /outbox:/home/maxime/Desktop/WordCountPipe/map/outbox map:test 
