@@ -1,0 +1,19 @@
+version: '2'
+services:
+	map:
+		build:
+			context : ./map
+			dockerfile : Dockerfile
+			entrypoint : /scripts/main.sh
+			volumes : 
+				- /home/maxime/Desktop/WordCountPipe/split/outbox:/inbox
+				- /home/maxime/Desktop/WordCountPipe/map/outbox:/outbox	
+	
+	combine:
+		build: 
+			context : ./combine
+			dockerfile : Dockerfile
+			entrypoint : /scripts/main.sh
+			volumes : 
+				- /home/maxime/Desktop/WordCountPipe/map/outbox:/inbox
+				- /home/maxime/Desktop/WordCountPipe/combine/outbox:/outbox

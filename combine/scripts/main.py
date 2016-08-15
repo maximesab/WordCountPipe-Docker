@@ -33,8 +33,8 @@ def get_args (argv):
 def process_data(inputfile, outputpath):
     
     timestamp = str(round(time.time()*1000))
-    tmp_outputpath = outputpath +"/tmp/"
-    tmp_outputfile = tmp_outputpath + timestamp + '.txt'
+    tmp_outputpath = os.getenv("TMP_OUTPUT_DIR", outputpath )
+    tmp_outputfile = tmp_outputpath + '/'+ timestamp + '.txt'
     data = {}
     if not os.path.exists(tmp_outputpath):
         os.makedirs(tmp_outputpath)
@@ -51,15 +51,16 @@ def process_data(inputfile, outputpath):
         with open(tmp_outputfile,"a") as of:
             for word in data:
                 of.write(word+':'+str(data.get(word) )+ '\n')
-    except :
-        print ("Could not process file")
+    except Exception as e :
+        print (str(e), "could not process file")
         error_on_process = True    
     
     if not error_on_process:
-        outputpath = outputpath + '/processed/'
+        outputpath = os.getenv('OUTPUT_DIR',outputpath)
         if not os.path.exists(outputpath):
             os.makedirs(outputpath)
         os.rename(tmp_outputfile, outputpath + timestamp + ".txt")
+        os.remove(inputfile)
 
 if __name__ == "__main__":
     args = get_args(sys.argv[1:])
