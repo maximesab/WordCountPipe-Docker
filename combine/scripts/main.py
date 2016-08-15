@@ -56,10 +56,10 @@ def process_data(inputfile, outputpath):
         error_on_process = True    
     
     if not error_on_process:
-        outputpath = os.getenv('OUTPUT_DIR',outputpath)
-        if not os.path.exists(outputpath):
-            os.makedirs(outputpath)
-        os.rename(tmp_outputfile, outputpath + timestamp + ".txt")
+        output_path = os.getenv('OUTPUT_DIR',outputpath)
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        os.rename(tmp_outputfile, output_path + timestamp + ".txt")
         os.remove(inputfile)
 
 if __name__ == "__main__":

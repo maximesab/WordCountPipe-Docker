@@ -1,19 +1,31 @@
 version: '2'
 services:
-	map:
-		build:
-			context : ./map
-			dockerfile : Dockerfile
-			entrypoint : /scripts/main.sh
-			volumes : 
-				- /home/maxime/Desktop/WordCountPipe/split/outbox:/inbox
-				- /home/maxime/Desktop/WordCountPipe/map/outbox:/outbox	
-	
-	combine:
-		build: 
-			context : ./combine
-			dockerfile : Dockerfile
-			entrypoint : /scripts/main.sh
-			volumes : 
-				- /home/maxime/Desktop/WordCountPipe/map/outbox:/inbox
-				- /home/maxime/Desktop/WordCountPipe/combine/outbox:/outbox
+  map:
+    build:
+      context : ./map
+      dockerfile : Dockerfile
+    command : [bash,/scripts/main.sh]
+    volumes : 
+      - /home/maxime/Desktop/WordCountPipe/split/outbox:/inbox
+      - /home/maxime/Desktop/WordCountPipe/map/outbox:/outbox
+    tty : true
+
+  combine:
+    build: 
+      context : ./combine
+      dockerfile : Dockerfile
+    command : [bash,/scripts/main.sh]
+    volumes : 
+      - /home/maxime/Desktop/WordCountPipe/map/outbox:/inbox
+      - /home/maxime/Desktop/WordCountPipe/combine/outbox:/outbox
+    tty : true
+
+  shuffle_and_sort:
+    build:
+      context : ./shuffle_and_sort
+      dockerfile : Dockerfile
+    command : [bash,/scripts/main.sh]
+    volumes :
+      - /home/maxime/Desktop/WordCountPipe/combine/outbox:/inbox
+      - /home/maxime/Desktop/WordCountPipe/shuffle_and_sort/outbox:/outbox
+    tty : true

@@ -2,4 +2,5 @@
 export INPUT_DIR="/inbox/"$HOSTNAME
 export TMP_OUTPUT_DIR="/outbox/tmp/"$HOSTNAME
 export OUTPUT_DIR="/outbox/processed"
+export MAIN_SCRIPT="/scripts/main.py"
 
