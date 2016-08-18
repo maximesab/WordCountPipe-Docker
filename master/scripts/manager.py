@@ -27,7 +27,7 @@ class Cache ():
         if arg == "main":
                 self.parent_dir = self.path
                 self.type = "MAIN_CACHE"
-
+                
         elif arg == "input":
             self.parent_dir = os.path.dirname(self.path)
             self.type = "INPUT"
@@ -35,8 +35,57 @@ class Cache ():
 
         if self.type == "MAIN_CACHE":
             self.sub_info()
+            
+            
+    def scale(self):
+        number_of_container = int(os.popen(self.sshcommand +" docker ps | grep -e 'wordcountpipe_map' | wc -l " ).read())
+        if number_of_container <= len(self.dirs):
+            print('number_of_container:' , number_of_container)
+            os.system(self.sshcommand +' docker-compose -f '+ '/home/maxime/Desktop/WordCountPipe/docker-compose.yml'   + ' scale map'  + '=' +str(number_of_container + 1) ) 
+        print('done')
 
 
+    def distribute_files(self,event):
+        for fil in self.files: 
+            distributed = False
+            error = False
+            for directory_name in self.dirs:
+                if self.dirs.get(directory_name).file_count < self.file_limit:
+                    
+                    try :
+                        print(len(self.files))
+                        fil = str(fil)
+                        path_name = os.path.join(self.path, os.path.join(directory_name,os.path.basename(fil)))
+                        #print(path_name)
+                        self.sub_info()
+                        self.count_file()
+                        os.rename(fil, path_name)
+                        print(len(self.files))
+                        distributed = True
+                        #print ("path ouput ", path_name)
+                        self.sub_info()
+                        self.count_file()
+                        #print(self.dirs.get(directory_name).count_file,self.dirs.get(directory_name).files, '\n')
+                        break
+                    
+                    except Exception as e :
+                        print("change distribution", str(e))
+                        error = True
+        
+            if not distributed and not error :
+                print (min([self.dirs.get(directory_name).file_count for directory_name in self.dirs]),[self.dirs.get(directory_name).file_count for directory_name in self.dirs])
+                try:           
+                    self.scale()
+                except Exception as e:
+                    print (str(e))
+                self.sub_info()
+                self.count_file()
+                self.distribute_files(event)
+                
+                print('event distributed again')
+                break
+
+    
 
 
     def count_file(self):
@@ -54,8 +103,23 @@ class Cache ():
                 self.files.setdefault(file, size)
                 self.size += size
                 self.file_count += 1
-                print(self.file_count, self.name, self.files)
+            
                 
+    def clean_up(self,event):
+        if self.type == 'MAIN_CACHE' and self.file_count == 0 and len(self.dirs) > 1:
+            if os.path.isfile(event.get('path')):
+                if os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:
+                    
+                    if self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).file_count == 0:
+                        try :
+                            os.system(self.sshcommand +' docker rm -f  ' + os.path.dirname(event.get('path'))) 
+                        except Exception as e:
+                            print('docker rm failed', str(e))
+                        try :
+                            os.system('rmdir' + os.path.dirname(event.get('path')))
+                        except Exception as e:
+                            print ('remove directory fail :', str(e))
+            
                 
                 
     def sub_info(self):
@@ -68,60 +132,25 @@ class Cache ():
                 directory = Cache(directory, 'input')
                 self.dirs.setdefault(directory.name,directory)
         
-        
+        print ('dirs ' ,self.dirs.keys())
         
         
         
         
     def update(self, event):
         print('event', event)
-        print ("event.get('type') == 'CREATE' or event.get('type') == 'MOVED_TO'",event.get('type') == "CREATE" or event.get('type') == "MOVED_TO")
+        
         if event.get('type') == "CREATE" or event.get('type') == "MOVED_TO" or event.get('type')=='MOVE_FROM_MAIN':
-            print('os.path.isfile(event.get("path"))')
+           
             if os.path.isfile(event.get('path')):
                 if self.type == 'MAIN_CACHE' or event.get('type') == 'MOVE_FROM_MAIN':
                     self.files.setdefault(event.get('path'), os.path.getsize(event.get('path')))
                     self.size += os.path.getsize(event.get('path'))
                     self.file_count += 1
-                print ('self.type == "MAIN_CACHE"', self.type == "MAIN_CACHE", 'self.type : ' + self.type )
+                    print(self.files.keys(),self.file_count)
+
                 if self.type == "MAIN_CACHE" :
-                    for file in self.files: 
-                        distributed = False
-                        error = False
-                        for directory_name in self.dirs:
-                            if self.dirs.get(directory_name).file_count < self.file_limit:
-                                
-                                try :
-                                    
-                                    file = str(file)
-                                    path_name = os.path.join(self.path, os.path.join(directory_name,os.path.basename(file)))
-                                    print(path_name)
-                                    os.rename(file, path_name)
-                                    distributed = True
-                                    print ("path ouput ", path_name)
-                                    event_bis = event
-                                    event_bis['path'] = path_name
-                                    event_bis['type'] = 'MOVE_FROM_MAIN'
-                                    print(event_bis)
-                                    
-                                    self.dirs.get(directory_name).update(event_bis)
-                                    print(self.dirs.get(directory_name).count_file,self.dirs.get(directory_name).files)
-                                    
-                                    break
-                                except Exception as e :
-                                    print("change distribution", str(e))
-                                    error = True
-        
-    
-                        if not distributed and not error :
-                            try:           
-                                number_of_container = int(os.system(self.sshcommand +" 'docker-compose ps' | grep -e " + 'map' + "| wc -l " ))
-                                os.system(self.sshcommand + 'cd '+ self.path +' && docker-compose scale map'  + '=' +str(number_of_container + 1))
-                            except Exception as e:
-                                print (str(e))
-                                
-                print(self.files)
-            
+                    self.distribute_files(event)            
             
             if os.path.isdir(event.get('path')):
                 print('event is dir', os.path.isdir(event.get('path')))
@@ -129,18 +158,13 @@ class Cache ():
                 self.dirs.setdefault(subdir.name, subdir)
                 print('directories' , self.dirs)
 
-        if  event.get('type') == "DELETE" or  event.get('type') == "REMOVE":
-            print(event.get('type') == "DELETE" or  event.get('type') == "REMOVE")
+        if  event.get('type') == "DELETE" or  event.get('type') == "REMOVE":            
+            
             if os.path.isfile(event.get('path')):
-                print('event is files', os.path.isfile(event.get('path')))
                 if  event.get('name') in self.files:
-                    print('files name is in self.files',event.get('name') in self.files)
-                    self.size -= os.path.getsize(event.get('path'))
-                    self.file_count -= 1
-                    del self.files[event.get('path')] 
-                
+                    self.count_file()
                 elif os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:
-                    self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).update(event)
+                    self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).count_file()
                     
             elif os.path.isdir(event.get('path')):
                 try :
@@ -153,7 +177,7 @@ class Cache ():
 
                 except :
                     pass    
-
+            self.clean_up(event)
 
 
                     
@@ -239,7 +263,7 @@ class processEvents(pyinotify.ProcessEvent):
 
 
 
-        
+
         
 if __name__=="__main__":
     mask = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MOVED_TO
