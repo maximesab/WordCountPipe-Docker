@@ -74,10 +74,16 @@ class Cache ():
         
         
     def update(self, event):
-        
-        if event.get('type') == "CREATE" or event.get('type') == "MOVED_TO":
-            
+        print('event', event)
+        print ("event.get('type') == 'CREATE' or event.get('type') == 'MOVED_TO'",event.get('type') == "CREATE" or event.get('type') == "MOVED_TO")
+        if event.get('type') == "CREATE" or event.get('type') == "MOVED_TO" or event.get('type')=='MOVE_FROM_MAIN':
+            print('os.path.isfile(event.get("path"))')
             if os.path.isfile(event.get('path')):
+                if self.type == 'MAIN_CACHE' or event.get('type') == 'MOVE_FROM_MAIN':
+                    self.files.setdefault(event.get('path'), os.path.getsize(event.get('path')))
+                    self.size += os.path.getsize(event.get('path'))
+                    self.file_count += 1
+                print ('self.type == "MAIN_CACHE"', self.type == "MAIN_CACHE", 'self.type : ' + self.type )
                 if self.type == "MAIN_CACHE" :
                     for file in self.files: 
                         distributed = False
@@ -86,14 +92,21 @@ class Cache ():
                             if self.dirs.get(directory_name).file_count < self.file_limit:
                                 
                                 try :
+                                    
                                     file = str(file)
-                                   
                                     path_name = os.path.join(self.path, os.path.join(directory_name,os.path.basename(file)))
                                     print(path_name)
                                     os.rename(file, path_name)
                                     distributed = True
-                                    self.dirs.get(directory_name).count_file()
+                                    print ("path ouput ", path_name)
+                                    event_bis = event
+                                    event_bis['path'] = path_name
+                                    event_bis['type'] = 'MOVE_FROM_MAIN'
+                                    print(event_bis)
+                                    
+                                    self.dirs.get(directory_name).update(event_bis)
                                     print(self.dirs.get(directory_name).count_file,self.dirs.get(directory_name).files)
+                                    
                                     break
                                 except Exception as e :
                                     print("change distribution", str(e))
@@ -101,20 +114,12 @@ class Cache ():
         
     
                         if not distributed and not error :
-                           
-                           number_of_container = int(os.system(self.sshcommand +" 'docker-compose ps' | grep -e " + 'map' + "| wc -l " ))
-                           os.system(self.sshcommand + 'docker-compose scale map'  + '=' +str(number_of_container + 1))                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                print(" event is file :", os.path.isfile(event.get('path')))
-                self.files.setdefault(event.get('path'), os.path.getsize(event.get('path')))
-                self.size += os.path.getsize(event.get('path'))
-                self.file_count += 1
+                            try:           
+                                number_of_container = int(os.system(self.sshcommand +" 'docker-compose ps' | grep -e " + 'map' + "| wc -l " ))
+                                os.system(self.sshcommand + 'cd '+ self.path +' && docker-compose scale map'  + '=' +str(number_of_container + 1))
+                            except Exception as e:
+                                print (str(e))
+                                
                 print(self.files)
             
             
@@ -148,40 +153,6 @@ class Cache ():
 
                 except :
                     pass    
-
-    def manage(self):
-        try :
-            if bool(self.files):
-    
-                for file in self.files: 
-                    distributed = False
-                    error = False
-                    for directory_name in self.dirs:
-                        if self.dirs.get(directory_name).file_count < self.file_limit:
-                            print("directory file count", self.dirs.get(directory_name).file_count)
-                            try :
-                                file = str(file)
-                                print('file = str(file)' ,str(file))
-                                path_name = os.path.join(self.path, os.path.join(directory_name,os.path.basename(file)))
-                                print(path_name)
-                                os.rename(file, path_name)
-                                distributed = True
-                                self.dirs.get(directory_name).count_file()
-                                print(self.dirs.get(directory_name).count_file(),self.dirs.get(directory_name).files)
-                                break
-                            except Exception as e :
-                                print("change distribution", str(e))
-                                error = True
-    
-
-                    if not distributed and not error :
-                       
-                       number_of_container = int(os.system(self.sshcommand +" 'docker-compose ps' | grep -e " + 'map' + "| wc -l " ))
-                       os.system(self.sshcommand + 'docker-compose scale map'  + '=' +str(number_of_container + 1))
-                       
-        
-        except Exception as e:
-            print('manage', str(e))
 
 
 
@@ -249,16 +220,6 @@ class processEvents(pyinotify.ProcessEvent):
         cache.update(self.event)
         print('process_delete')
         print(cache.files)
-    
-    def process_IN_MOVED_FROM(self, event):
-        global cache
-        self.event = {}
-        self.event.setdefault('type',"REMOVE")
-        self.event.setdefault('path',event.__dict__.get("pathname") )
-        self.event.setdefault('name', os.path.basename(event.__dict__.get('pathname')))
-        cache.update(self.event)
-        print('process_remove')
-        print(cache.files)
             
     def process_IN_MOVED_TO(self, event):
         global cache
@@ -283,6 +244,6 @@ class processEvents(pyinotify.ProcessEvent):
 if __name__=="__main__":
     mask = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MOVED_TO
     wm = pyinotify.WatchManager()
-    wm.add_watch(path,mask,rec=False)
+    wm.add_watch(path,mask,rec=True,auto_add=True)
     notifier = pyinotify.Notifier(wm, default_proc_fun=processEvents())
     notifier.loop()
