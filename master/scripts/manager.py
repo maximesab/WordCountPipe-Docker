@@ -106,19 +106,23 @@ class Cache ():
             
                 
     def clean_up(self,event):
+        print ("self.type == 'MAIN_CACHE' and self.file_count == 0 and len(self.dirs) > 1" ,self.type =='MAIN_CACHE' and self.file_count ==0 and len(self.dirs) > 1)
+        
         if self.type == 'MAIN_CACHE' and self.file_count == 0 and len(self.dirs) > 1:
-            if os.path.isfile(event.get('path')):
-                if os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:
-                    
-                    if self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).file_count == 0:
-                        try :
-                            os.system(self.sshcommand +' docker rm -f  ' + os.path.dirname(event.get('path'))) 
-                        except Exception as e:
-                            print('docker rm failed', str(e))
-                        try :
-                            os.system('rmdir' + os.path.dirname(event.get('path')))
-                        except Exception as e:
-                            print ('remove directory fail :', str(e))
+            
+            print ("os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:",os.path.basename(os.path.dirname(event.get('path'))) in self.dirs,  os.path.dirname(event.get('path')), self.dirs.keys()) 
+        
+            if os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:
+                
+                if self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).file_count == 0:
+                    try :
+                        os.system(self.sshcommand +' docker rm -f  ' + os.path.basename(os.path.dirname(event.get('path'))))
+                    except Exception as e:
+                        print('docker rm failed', str(e))
+                    try :
+                        os.system('rmdir ' + os.path.dirname(event.get('path')))
+                    except Exception as e:
+                        print ('remove directory fail :', str(e))
             
                 
                 
@@ -144,9 +148,8 @@ class Cache ():
            
             if os.path.isfile(event.get('path')):
                 if self.type == 'MAIN_CACHE' or event.get('type') == 'MOVE_FROM_MAIN':
-                    self.files.setdefault(event.get('path'), os.path.getsize(event.get('path')))
-                    self.size += os.path.getsize(event.get('path'))
-                    self.file_count += 1
+                    self.count_file()
+                    self.sub_info()
                     print(self.files.keys(),self.file_count)
 
                 if self.type == "MAIN_CACHE" :
@@ -158,25 +161,11 @@ class Cache ():
                 self.dirs.setdefault(subdir.name, subdir)
                 print('directories' , self.dirs)
 
-        if  event.get('type') == "DELETE" or  event.get('type') == "REMOVE":            
-            
-            if os.path.isfile(event.get('path')):
-                if  event.get('name') in self.files:
-                    self.count_file()
-                elif os.path.basename(os.path.dirname(event.get('path'))) in self.dirs:
-                    self.dirs.get(os.path.basename(os.path.dirname(event.get('path')))).count_file()
-                    
-            elif os.path.isdir(event.get('path')):
-                try :
-                    
-                    if  event.get('name') in self.dirs :
-                        del self.dirs[ event.get('name')]
-
-                    if event.get('path') == self.path:
-                        del self
-
-                except :
-                    pass    
+        if event.get('type') == "DELETE" or  event.get('type') == "REMOVE":            
+          
+            self.count_file()
+            self.sub_info()
+            print('clean up suppose to strat' +'/n')
             self.clean_up(event)
 
 
