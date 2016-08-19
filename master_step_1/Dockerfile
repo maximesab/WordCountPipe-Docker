@@ -104,7 +104,7 @@ RUN apk upgrade
 RUN apk add --no-cache openssh sshpass inotify-tools
 ADD . /
 ENV HOST_USER=maxime
-ENV PASSWORD=qwertyuiop
+ENV PASSWORD=XXXXXXXX
 ENV DIR_TO_WATCH=/watched_dir
 RUN pip3 install -r /requierements
 

@@ -22,7 +22,7 @@ class Cache ():
         self.file_limit = 5
         self.path = path
         self.name = os.path.basename(self.path)
-        self.sshcommand = "sshpass -p" + os.getenv('PASSWORD','qwertyuiop') + " ssh -o 'StrictHostKeyChecking no' " +os.getenv('HOST_USER','maxime') +"@172.17.0.1 "
+        self.sshcommand = "sshpass -p" + os.getenv('PASSWORD','XXXXXXXXX') + " ssh -o 'StrictHostKeyChecking no' " +os.getenv('HOST_USER','maxime') +"@172.17.0.1 "
     
         if arg == "main":
                 self.parent_dir = self.path
