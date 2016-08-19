@@ -6,8 +6,8 @@ services:
       dockerfile : Dockerfile
     command : [bash,/scripts/main.sh]
     volumes : 
-      - /home/maxime/Desktop/WordCountPipe/split/outbox:/inbox
-      - /home/maxime/Desktop/WordCountPipe/map/outbox:/outbox
+      - /WordCountPipe/split/outbox:/inbox
+      - /WordCountPipe/map/outbox:/outbox
     tty : true
 
   combine:
@@ -16,8 +16,8 @@ services:
       dockerfile : Dockerfile
     command : [bash,/scripts/main.sh]
     volumes : 
-      - /home/maxime/Desktop/WordCountPipe/map/outbox:/inbox
-      - /home/maxime/Desktop/WordCountPipe/combine/outbox:/outbox
+      - /WordCountPipe/map/outbox/processed:/inbox
+      - /WordCountPipe/combine/outbox:/outbox
     tty : true
 
   shuffle_and_sort:
@@ -26,6 +26,7 @@ services:
       dockerfile : Dockerfile
     command : [bash,/scripts/main.sh]
     volumes :
-      - /home/maxime/Desktop/WordCountPipe/combine/outbox:/inbox
-      - /home/maxime/Desktop/WordCountPipe/shuffle_and_sort/outbox:/outbox
+      - /WordCountPipe/combine/outbox/processed:/inbox
+      - /WordCountPipe/shuffle_and_sort/outbox:/outbox
     tty : true
+
